@@ -22,7 +22,7 @@
 #define PCCARD_FUNC_AIMS   0x07
 #define PCCARD_FUNC_SCSI   0x08
 
-APTR cardRes;
+struct Library *CardResource;
 
 void error(char *msg) {
   printf("ERROR: %s\n", msg);
@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
   BOOL success = FALSE;
 
   /* Open card.resource */
-  cardRes = OpenResource(CARDRESNAME);
-  if (!cardRes) {
+  CardResource = OpenResource(CARDRESNAME);
+  if (!CardResource) {
     error("Unable to open card.resource");
   }
 
