@@ -1,8 +1,6 @@
 #include <proto/dos.h>
 #include <proto/exec.h>
 #include <proto/cardres.h>
-#include <pragmas/cardres_pragmas.h>
-#include <exec/memory.h>
 #include <resources/card.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,13 +40,21 @@ void error(char *msg) {
 
 void DummyInterruptHandler(void) {}
 
+void CleanupCard(struct CardHandle *cardHandle) {
+debug("Resetting card");
+  CardMiscControl(cardHandle, 0);
+  CardResetCard(cardHandle);
+debug("Releasing card");
+  ReleaseCard(cardHandle, CARDF_REMOVEHANDLE);
+}
+
 int main(int argc, char *argv[]) {
   struct CardHandle cardHandle;
   struct CardHandle *ownCard;
 
-  static struct Interrupt cardRemovedInt  = {NULL, NULL, NT_INTERRUPT, 0, NULL, (APTR)1, DummyInterruptHandler};
-  static struct Interrupt cardInsertedInt = {NULL, NULL, NT_INTERRUPT, 0, NULL, (APTR)1, DummyInterruptHandler};
-  static struct Interrupt cardStatusInt   = {NULL, NULL, NT_INTERRUPT, 0, NULL, (APTR)1, DummyInterruptHandler};
+  static struct Interrupt cardRemovedInt  = {{NULL, NULL, NT_INTERRUPT, 0, NULL}, (APTR)1, DummyInterruptHandler};
+  static struct Interrupt cardInsertedInt = {{NULL, NULL, NT_INTERRUPT, 0, NULL}, (APTR)1, DummyInterruptHandler};
+  static struct Interrupt cardStatusInt   = {{NULL, NULL, NT_INTERRUPT, 0, NULL}, (APTR)1, DummyInterruptHandler};
 
   static UBYTE tupleBuffer[TUPLE_BUFFER_SIZE];
   UBYTE tuplePart;
@@ -77,12 +83,10 @@ int main(int argc, char *argv[]) {
   cardHandle.cah_CardStatus   = &cardStatusInt;
   cardHandle.cah_CardFlags    = CARDF_IFAVAILABLE;
 
-debug("Claiming card");
   /* Claim ownership of the card */
   ownCard = OwnCard(&cardHandle);
   if ((int)ownCard == 0) {
     /* success */
-debug("We own the card");
   } else if ((int)ownCard == -1) {
     error("No PCMCIA card is present");
   } else {
@@ -90,13 +94,14 @@ debug("We own the card");
     error("Unable to claim card");
   }
 
-debug("Setting control bits");
   /* Set control bits for the card */
   CardMiscControl(&cardHandle, CARD_DISABLEF_WP|CARD_ENABLEF_DIGAUDIO);
 
-debug("Copying MANFID tuple");
   success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_MANFID, MAX_TUPLE_SIZE);
-  if (success) {
+  if (!success) {
+    CleanupCard(&cardHandle);
+    error("MANFID tuple not found");
+  } else {
 debug("Testing tuple type");
     tuplePart = tupleBuffer[0];
     if (tuplePart == PCCARD_TPL_MANFID) {
@@ -108,14 +113,10 @@ debug("Reading 2nd tuple value");
   }
 
 debug("Printing tuple data");
-  printf("Found manufacturer: %d", manufacturer);
-  printf("Found product: %d", product);
+  printf("Found manufacturer: %d\n", manufacturer);
+  printf("Found product: %d\n", product);
 
-debug("Resetting card");
-  CardMiscControl(&cardHandle, 0);
-  CardResetCard(&cardHandle);
-debug("Releasing card");
-  ReleaseCard(&cardHandle, CARDF_REMOVEHANDLE);
+  CleanupCard(&cardHandle);
 
   return 0;
 }
