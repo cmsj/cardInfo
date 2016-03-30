@@ -58,18 +58,22 @@ int main(int argc, char *argv[]) {
   static UBYTE tupleBuffer[TUPLE_BUFFER_SIZE];
   UWORD manufacturer = 0;
   UWORD product = 0;
-  char *infoString = NULL;
+  char *infoString1 = NULL;
+  char *infoString2 = NULL;
+  char *infoString3 = NULL;
   char *type = "Unknown";
   char option = '*';
 
   BOOL success;
 
   if (argc == 2 && !(strncmp(argv[1], "?", 1))) {
-    printf("Usage: %s [v|p|t|n]\n", argv[0]);
+    printf("Usage: %s [v|p|t|1|2|3]\n", argv[0]);
     printf("  v - Vendor ID\n");
     printf("  p - Product ID\n");
     printf("  t - Card type\n");
-    printf("  n - Card name\n");
+    printf("  1 - Card info string 1\n");
+    printf("  2 - Card info string 2\n");
+    printf("  3 - Card info string 3\n");
     printf("If no options are specified, all the information will be printed, separated by colons\n");
     exit(0);
   } else if (argc == 2) {
@@ -121,10 +125,16 @@ int main(int argc, char *argv[]) {
   success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_VERS1, MAX_TUPLE_SIZE);
   if (success && tupleBuffer[0] == PCCARD_TPL_VERS1) {
     char *p = &tupleBuffer[4];
+    infoString1 = malloc(strlen(p) + 1);
+    strncpy(infoString1, p, strlen(p) + 1);
     p += strlen(p) + 1;
+
+    infoString2 = malloc(strlen(p) + 1);
+    strncpy(infoString2, p, strlen(p) + 1);
     p += strlen(p) + 1;
-    infoString = malloc(strlen(p) + 1);
-    strncpy(infoString, p, strlen(p));
+
+    infoString3 = malloc(strlen(p) + 1);
+    strncpy(infoString3, p, strlen(p) + 1);
   }
 
   /* Get card type, if available */
@@ -173,15 +183,23 @@ int main(int argc, char *argv[]) {
     case 't':
       printf("%s\n", type);
       break;
-    case 'n':
-      printf("%s\n", infoString);
+    case '1':
+      printf("%s\n", infoString1);
+      break;
+    case '2':
+      printf("%s\n", infoString2);
+      break;
+    case '3':
+      printf("%s\n", infoString3);
       break;
     default:
-      printf("%d:%d:%s:%s\n", manufacturer, product, type, infoString);
+      printf("%d:%d:%s:%s:%s:%s\n", manufacturer, product, type, infoString1, infoString2, infoString3);
       break;
   }
 
-  free(infoString);
+  free(infoString1);
+  free(infoString2);
+  free(infoString3);
   CleanupCard(&cardHandle);
 
   return 0;
