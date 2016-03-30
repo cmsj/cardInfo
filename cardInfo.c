@@ -4,6 +4,7 @@
 #include <resources/card.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define LEWord(P) (*(P)|(*((P)+1)<<8))
 
@@ -41,10 +42,8 @@ void error(char *msg) {
 void DummyInterruptHandler(void) {}
 
 void CleanupCard(struct CardHandle *cardHandle) {
-debug("Resetting card");
   CardMiscControl(cardHandle, 0);
   CardResetCard(cardHandle);
-debug("Releasing card");
   ReleaseCard(cardHandle, CARDF_REMOVEHANDLE);
 }
 
@@ -57,11 +56,25 @@ int main(int argc, char *argv[]) {
   static struct Interrupt cardStatusInt   = {{NULL, NULL, NT_INTERRUPT, 0, NULL}, (APTR)1, DummyInterruptHandler};
 
   static UBYTE tupleBuffer[TUPLE_BUFFER_SIZE];
-  UBYTE tuplePart;
   UWORD manufacturer = 0;
   UWORD product = 0;
+  char *infoString = NULL;
+  char *type = "Unknown";
+  char option = '*';
 
   BOOL success;
+
+  if (argc == 2 && !(strncmp(argv[1], "?", 1))) {
+    printf("Usage: %s [v|p|t|n]\n", argv[0]);
+    printf("  v - Vendor ID\n");
+    printf("  p - Product ID\n");
+    printf("  t - Card type\n");
+    printf("  n - Card name\n");
+    printf("If no options are specified, all the information will be printed, separated by colons\n");
+    exit(0);
+  } else if (argc == 2) {
+    option = argv[1][0];
+  }
 
   /* Open card.resource */
   CardResource = OpenResource(CARDRESNAME);
@@ -97,25 +110,78 @@ int main(int argc, char *argv[]) {
   /* Set control bits for the card */
   CardMiscControl(&cardHandle, CARD_DISABLEF_WP|CARD_ENABLEF_DIGAUDIO);
 
+  /* Get Manufacturer/Product data, if available */
   success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_MANFID, MAX_TUPLE_SIZE);
-  if (!success) {
-    CleanupCard(&cardHandle);
-    error("MANFID tuple not found");
-  } else {
-debug("Testing tuple type");
-    tuplePart = tupleBuffer[0];
-    if (tuplePart == PCCARD_TPL_MANFID) {
-debug("Reading 1st tuple value");
-	manufacturer = LEWord(tupleBuffer + 2);
-debug("Reading 2nd tuple value");
-        product = LEWord(tupleBuffer + 4);
-    } 
+  if (success && tupleBuffer[0] == PCCARD_TPL_MANFID) {
+    manufacturer = LEWord(tupleBuffer + 2);
+    product = LEWord(tupleBuffer + 4);
   }
 
-debug("Printing tuple data");
-  printf("Found manufacturer: %d\n", manufacturer);
-  printf("Found product: %d\n", product);
+  /* Get product name string, if available */
+  success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_VERS1, MAX_TUPLE_SIZE);
+  if (success && tupleBuffer[0] == PCCARD_TPL_VERS1) {
+    char *p = &tupleBuffer[4];
+    p += strlen(p) + 1;
+    p += strlen(p) + 1;
+    infoString = malloc(strlen(p) + 1);
+    strncpy(infoString, p, strlen(p));
+  }
 
+  /* Get card type, if available */
+  success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_FUNCID, MAX_TUPLE_SIZE);
+  if (success && tupleBuffer[0] == PCCARD_TPL_FUNCID) {
+    switch (tupleBuffer[2]) {
+      case PCCARD_FUNC_MULTI:
+        type = "Multifunction";
+        break;
+      case PCCARD_FUNC_MEM:
+        type = "Memory";
+        break;
+      case PCCARD_FUNC_SERIAL:
+        type = "Serial";
+        break;
+      case PCCARD_FUNC_PARRL:
+        type = "Parallel";
+        break;
+      case PCCARD_FUNC_FIXED:
+        type = "Fixed";
+        break;
+      case PCCARD_FUNC_VIDEO:
+        type = "Video";
+        break;
+      case PCCARD_FUNC_NETWK:
+        type = "Network";
+        break;
+      case PCCARD_FUNC_AIMS:
+        type = "AIMS";
+        break;
+      case PCCARD_FUNC_SCSI:
+        type = "SCSI";
+        break;
+      default:
+        break;
+    }
+  }
+
+  switch ((unsigned int)option) {
+    case 'v':
+      printf("%d\n", manufacturer);
+      break;
+    case 'p':
+      printf("%d\n", product);
+      break;
+    case 't':
+      printf("%s\n", type);
+      break;
+    case 'n':
+      printf("%s\n", infoString);
+      break;
+    default:
+      printf("%d:%d:%s:%s\n", manufacturer, product, type, infoString);
+      break;
+  }
+
+  free(infoString);
   CleanupCard(&cardHandle);
 
   return 0;
