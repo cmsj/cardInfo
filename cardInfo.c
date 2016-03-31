@@ -6,9 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define LEWord(P) (*(P)|(*((P)+1)<<8))
 
 #define PCCARD_PRIORITY 20
+#define EXIT_WARN 5
+#define EXIT_ERROR 10
 
 #define MAX_TUPLE_SIZE 0xff
 #define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE + 8)
@@ -36,7 +39,11 @@ void debug(char *msg) {
 
 void error(char *msg) {
   printf("ERROR: %s\n", msg);
-  exit(1);
+  exit(EXIT_ERROR);
+}
+
+BOOL stringTest(char *actual, char *expected) {
+  return (0 == strncmp(actual, expected, MIN(strlen(actual), strlen(expected))));
 }
 
 void DummyInterruptHandler(void) {}
@@ -56,28 +63,48 @@ int main(int argc, char *argv[]) {
   static struct Interrupt cardStatusInt   = {{NULL, NULL, NT_INTERRUPT, 0, NULL}, (APTR)1, DummyInterruptHandler};
 
   static UBYTE tupleBuffer[TUPLE_BUFFER_SIZE];
-  UWORD manufacturer = 0;
-  UWORD product = 0;
+  char manufacturer[6] = "0";
+  char product[6] = "0";
   char *infoString1 = NULL;
   char *infoString2 = NULL;
   char *infoString3 = NULL;
   char *type = "Unknown";
   char option = '*';
+  char *testValue = NULL;
 
+  BOOL testExpected = FALSE;
   BOOL success;
 
+  int exitCode = 0;
+
   if (argc == 2 && !(strncmp(argv[1], "?", 1))) {
-    printf("Usage: %s [v|p|t|1|2|3]\n", argv[0]);
-    printf("  v - Vendor ID\n");
-    printf("  p - Product ID\n");
-    printf("  t - Card type\n");
-    printf("  1 - Card info string 1\n");
-    printf("  2 - Card info string 2\n");
-    printf("  3 - Card info string 3\n");
-    printf("If no options are specified, all the information will be printed, separated by colons\n");
+    printf("Usage: %s [v|p|t|1|2|3] [testValue]\n", argv[0]);
+    printf("  If no options are specified, all card information will be printed, separated by colons\n");
+    printf("  To display only one piece of information, add one of the following options:\n");
+    printf("    v - Vendor ID\n");
+    printf("    p - Product ID\n");
+    printf("    t - Card type\n");
+    printf("    1 - Card info string 1\n");
+    printf("    2 - Card info string 2\n");
+    printf("    3 - Card info string 3\n");
+    printf("  For use in scripts, specify one of those options and the value you expect.\n");
+    printf("  This will cause %s to print nothing, and exit with a return code indicating whether\n", argv[0]);
+    printf("   the value was found (0 if it was found, 10 if not).\n");
+    printf("   Example:\n");
+    printf("    cardInfo p 1024\n");
+    printf("    IF WARN\n");
+    printf("      Echo \"Card not found\"\n");
+    printf("    ELSE\n");
+    printf("      Echo \"Card found\"\n");
+    printf("    ENDIF\n");
     exit(0);
-  } else if (argc == 2) {
+  } else if (argc >= 2) {
     option = argv[1][0];
+  }
+
+  if (argc == 3) {
+    testExpected = TRUE;
+    testValue = argv[2];
   }
 
   /* Open card.resource */
@@ -117,8 +144,8 @@ int main(int argc, char *argv[]) {
   /* Get Manufacturer/Product data, if available */
   success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_MANFID, MAX_TUPLE_SIZE);
   if (success && tupleBuffer[0] == PCCARD_TPL_MANFID) {
-    manufacturer = LEWord(tupleBuffer + 2);
-    product = LEWord(tupleBuffer + 4);
+    sprintf(manufacturer, "%hu", LEWord(tupleBuffer + 2));
+    sprintf(product, "%hu", LEWord(tupleBuffer + 4));
   }
 
   /* Get product name string, if available */
@@ -173,28 +200,54 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  switch ((unsigned int)option) {
-    case 'v':
-      printf("%d\n", manufacturer);
-      break;
-    case 'p':
-      printf("%d\n", product);
-      break;
-    case 't':
-      printf("%s\n", type);
-      break;
-    case '1':
-      printf("%s\n", infoString1);
-      break;
-    case '2':
-      printf("%s\n", infoString2);
-      break;
-    case '3':
-      printf("%s\n", infoString3);
-      break;
-    default:
-      printf("%d:%d:%s:%s:%s:%s\n", manufacturer, product, type, infoString1, infoString2, infoString3);
-      break;
+  if (testExpected) {
+    switch ((unsigned int)option) {
+      case 'v':
+        if (!stringTest(manufacturer, testValue)) exitCode = EXIT_WARN;
+        break;
+      case 'p':
+        if (!stringTest(product, testValue)) exitCode = EXIT_WARN;
+        break;
+      case 't':
+        if (!stringTest(type, testValue)) exitCode = EXIT_WARN;
+        break;
+      case '1':
+        if (!stringTest(infoString1, testValue)) exitCode = EXIT_WARN;
+        break;
+      case '2':
+        if (!stringTest(infoString2, testValue)) exitCode = EXIT_WARN;
+        break;
+      case '3':
+        if (!stringTest(infoString3, testValue)) exitCode = EXIT_WARN;
+        break;
+      default:
+        error("Invalid option");
+        break;
+    }
+  } else {
+    switch ((unsigned int)option) {
+      case 'v':
+        printf("%s\n", manufacturer);
+        break;
+      case 'p':
+        printf("%s\n", product);
+        break;
+      case 't':
+        printf("%s\n", type);
+        break;
+      case '1':
+        printf("%s\n", infoString1);
+        break;
+      case '2':
+        printf("%s\n", infoString2);
+        break;
+      case '3':
+        printf("%s\n", infoString3);
+        break;
+      default:
+        printf("%s:%s:%s:%s:%s:%s\n", manufacturer, product, type, infoString1, infoString2, infoString3);
+        break;
+    }
   }
 
   free(infoString1);
@@ -202,5 +255,5 @@ int main(int argc, char *argv[]) {
   free(infoString3);
   CleanupCard(&cardHandle);
 
-  return 0;
+  exit(exitCode);
 }
