@@ -1,0 +1,43 @@
+; Roadshow example script for cardInfo.
+; v1.1 by Chris Jones <cmsj@tenshu.net>
+;
+; Add network interfaces dynamically to Roadshow based on which PCMCIA NICs
+;  are present at runtime.
+;
+; This script can be called from S:User-startup after S:Network-Startup, or
+;  you can call it from S:Network-Startup if you need the interfaces to
+;  come up before some daemons get started by that script.
+;
+; Roadshow's S:Network-Startup will still unconditionally add any interfaces
+;  defined in DEVS:NetInterfaces/ so you should move any non-permanent NICs
+;  from there to SYS:Storage/NetInterfaces. See the examples below for how
+;  to add an interface from SYS:Storage.
+;
+; Also note that if you have a WiFi driver installed, you will probably need
+;  to remove its entry from S:User-startup and add it to this script (see the
+;  Prism2 example below)
+
+; Fail at return code 20.
+; If there is no card, or some other driver/task owns the card, the first call
+;  to cardInfo will return 20 and we can avoid running the rest of the script.
+FAILAT 20
+
+; Add CNet16 interface if NetGear FA411 is present
+; Card Info: 329:1041:Network:NETGEAR:FA411:Fast Ethernet
+cardInfo >NIL: p 1041
+IF NOT WARN
+  AddNetInterface SYS:Storage/NetInterfaces/CNet16 QUIET
+ENDIF
+
+; Add Prism2 interface if NetGear MA401 is present, and start WirelessManager
+; Card Info: 11:29440:Network:NETGEAR MA401RA Wireless PC:Card:ISL37300P
+cardInfo >NIL: p 29440
+IF NOT WARN
+  Run <>NIL: C:WirelessManager prism2.device
+  ; WirelessManager needs to establish the wireless connection before
+  ;  we call AddNetInterface, so wait for 2 seconds. This may need to be
+  ;  adjusted for your machine.
+  Wait 2
+  AddNetInterface SYS:Storage/NetInterfaces/Prism2 QUIET
+ENDIF
+
