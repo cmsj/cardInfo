@@ -1,0 +1,15 @@
+Short:        Get info about PCMCIA cards for scripting
+Uploader:     cmsj@tenshu.net (Chris Jones)
+Author:       cmsj@tenshu.net (Chris Jones)
+Type:         util/cli
+Version:      1.0
+Architecture: m68k-amigaos >= 3.1
+Distribution: aminet
+Requires: OS3.1+
+
+Prints information about the PCMCIA card in your A600/A1200.
+
+Do you have multiple cards you switch between? You can use cardInfo to detect
+which one is present at boot, so you can load the appropriate drivers/systems.
+
+That's really all there is to it. Full source is included, under MIT License.

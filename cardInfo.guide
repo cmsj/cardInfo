@@ -1,0 +1,186 @@
+@DATABASE cardInfo.guide
+@wordwrap
+@AUTHOR "Chris Jones"
+@(c) "Copyright ©2016 Chris Jones"
+@$VER: cardInfo.guide V1.00 (01.04.16)
+@remark : If you don`t have Amigaguide, this should be fairly easy to read.
+
+@MASTER cardInfo.guide
+@TABSIZE=3
+
+@NODE MAIN
+@TITLE "cardInfo V1.0 by Chris Jones"
+
+                               @{fg highlight}cardInfo V1.0 Help@{fg text}
+
+                            Please choose an option:
+
+                          @{" License                " link License}
+                          @{" Introduction           " link Introduction}
+                          @{" Getting Started        " link GettingStarted}
+                          @{" Installation           " link Installation}
+                          @{" Requirements           " link Requirements}
+                          @{" Usage                  " link Usage}
+                          @{" History                " link History}
+                          @{" Credits                " link Credits}
+                          @{" Contacting the Author  " link Author}
+
+
+                 Click on the @{fg highlight}@{b}CONTENTS@{ub}@{fg text} button at the top of the
+                       window to return here at any time.
+
+@ENDNODE
+
+@NODE License
+@TITLE "cardInfo V1.0 License Information"
+
+@{fg highlight}                               LICENSE FOR cardInfo
+@{fg text}
+
+
+@{b}1.  COPYRIGHT:@{ub}  This program and the related documentation are copyright.  You
+may not use, copy, modify, or transfer the programs or documentation or any copy
+except as expressly provided in this agreement
+
+@{b}2.  LICENSE:@{ub}  The MIT License (MIT)
+Copyright (c) 2016 Chris Jones
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+@ENDNODE
+
+@NODE Introduction
+@TITLE "cardInfo Introduction"
+
+cardInfo is a very simple command line tool for displaying information about PCMCIA cards. It can also be used to test the card's information, for use in scripts.
+
+@ENDNODE
+
+@NODE GettingStarted
+@TITLE "Starting cardInfo V1.0"
+
+Launch a shell and run cardInfo. It will tell you some useful things about the current PCMCIA card, such as the Vendor ID, Product ID, card type, and the information strings the card supplies.
+
+Note that if another program, or a device driver, are using the card, cardInfo will not be able to report anything (but it will do its best to tell you which other process is using the card).
+
+For full information about using cardInfo, see the @{"Usage" link Usage} page.
+
+@ENDNODE
+
+@NODE Installation
+@TITLE "Installing cardInfo V1.0"
+
+Installation is very simple, just copy cardInfo to C:
+
+@ENDNODE
+
+@NODE Requirements
+@TITLE "cardInfo V1.0 Requirements"
+
+@{fg highlight}   cardInfo V1.0 probably requires Kickstart 3.1 or above, but I have not tested it below or above that. If you have, and it did/didn't work, please @{"let me know!" link Author}
+@{fg text}
+
+cardInfo V1.0 was compiled on Linux using Krystian Baclawski's cross compiler toolchain, which is available from https://github.com/cahirwpz/amigaos-cross-toolchain
+
+@ENDNODE
+
+@NODE Usage
+@TITLE "Using cardInfo V1.0"
+
+There are three ways to use cardInfo:
+  · To display everything about the current card
+    This is the simplest mode of operation.
+    Here is an example showing the output from a NetGear FA111 Ethernet card:
+    
+      @{b}1> cardInfo
+      329:1041:Network:NETGEAR:FA411:Fast Ethernet@{ub}
+      
+      The information being displayed between the colons is:
+        · Vendor ID
+        · Product ID
+        · Card type, which will be one of:
+          · Multifunction
+          · Memory
+          · Serial
+          · Parallel
+          · Fixed
+          · Network
+          · AIMS
+          · SCSI
+        · First information string
+        · Second information string
+        · Third information string
+
+  · To display one specific piece of information about the current card
+    Each of the pieces of information cardInfo can detect, can be displayed on its own by adding a command line argument:
+      · v - Show only the Vendor ID
+      · p - Show only the Product ID
+      · t - Show only the card type (see above)
+      · 1 - Show only the first information string
+      · 2 - Show only the second information string
+      · 3 - Show only the third information string
+    An example with the NetGear FA111 card shown above:
+    
+      @{b}1> cardInfo p
+      1041@{ub}
+
+  · To test if the current card matches a specific piece of information
+    In this mode, you specify an argument for a specific piece of information (see above) and a value to test it against.
+    cardInfo's return code will tell you whether the value was as expected or not. This is very useful for use in scripts:
+    
+      @{b}cardInfo -p 1041
+      IF NOT WARN
+        Echo "The card has Product ID 1041, your NetGear FA411 is plugged in"
+      ELSE
+        Echo "The card does not have Product ID 1041. Some other card, or no card, is plugged in"
+      ENDIF@{ub}
+
+It seems very likely that the main uses of cardInfo are the third mode of operation described above - in scripts.
+
+To that end, there's an examples directory in the cardInfo archive, which contains some examples of ways it can be used, e.g. dynamically adding network interfaces to Roadshow at boot, depending on which of your PCMCIA network cards is plugged in.
+
+If you come up with some scripts with cardInfo, please send them @{"to me" link Author} so I can include them in the Aminet archive.
+
+@ENDNODE
+
+@NODE History
+@TITLE "cardInfo V1.0's History"
+
+
+                              cardInfo History
+
+                                  @{fg highlight}V 1.0@{fg text}
+
+                                 Public release
+
+ · Initial release (Aminet)
+
+@ENDNODE
+
+@NODE Credits
+@TITLE "cardInfo V1.0 Credits"
+
+                          cardInfo V1.0 by Chris Jones
+                            Help from Thomas @ EAB
+             Inspiration from prism2.device and cnet.device sources
+
+@ENDNODE
+
+@NODE Author
+@TITLE "Contacting the author"
+
+Please send all bug reports, comments, suggestions, A4000Ts, etc. to:
+
+   Chris Jones
+      E-mail: cmsj@tenshu.net
+      Project Homepage: https://github.com/cmsj/cardInfo
+
+                                   Thank you.
+
+@ENDNODE
+
+@remark : Bullet point ASCII 183 : "·"
