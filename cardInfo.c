@@ -9,26 +9,27 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define LEWord(P) (*(P)|(*((P)+1)<<8))
 
-#define PCCARD_PRIORITY 20
+#define PCMCIA_PRIORITY 20
+#define EXIT_SUCCESS 0
 #define EXIT_WARN 5
 #define EXIT_ERROR 10
 
 #define MAX_TUPLE_SIZE 0xff
 #define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE + 8)
 
-#define PCCARD_TPL_VERS1  0x15
-#define PCCARD_TPL_MANFID 0x20
-#define PCCARD_TPL_FUNCID 0x21
+#define CISTPL_VERS_1  0x15
+#define CISTPL_MANFID 0x20
+#define CISTPL_FUNCID 0x21
 
-#define PCCARD_FUNC_MULTI  0x00
-#define PCCARD_FUNC_MEM    0x01
-#define PCCARD_FUNC_SERIAL 0x02
-#define PCCARD_FUNC_PARRL  0x03
-#define PCCARD_FUNC_FIXED  0x04
-#define PCCARD_FUNC_VIDEO  0x05
-#define PCCARD_FUNC_NETWK  0x06
-#define PCCARD_FUNC_AIMS   0x07
-#define PCCARD_FUNC_SCSI   0x08
+#define CISTPL_FUNCID_MULTI  0x00
+#define CISTPL_FUNCID_MEMORY    0x01
+#define CISTPL_FUNCID_SERIAL 0x02
+#define CISTPL_FUNCID_PARALLEL  0x03
+#define CISTPL_FUNCID_FIXED  0x04
+#define CISTPL_FUNCID_VIDEO  0x05
+#define CISTPL_FUNCID_NETWORK  0x06
+#define CISTPL_FUNCID_AIMS   0x07
+#define CISTPL_FUNCID_SCSI   0x08
 
 struct Library *CardResource;
 
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
   BOOL testExpected = FALSE;
   BOOL success;
 
-  int exitCode = 0;
+  int exitCode = EXIT_SUCCESS;
 
   if (argc == 2 && !(strncmp(argv[1], "?", 1))) {
     printf("Usage: %s [v|p|t|1|2|3] [testValue]\n", argv[0]);
@@ -119,7 +120,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Add our dummy data struct to the interrupt handlers */
-  cardHandle.cah_CardNode.ln_Pri  = PCCARD_PRIORITY;
+  cardHandle.cah_CardNode.ln_Pri  = PCMCIA_PRIORITY;
   cardHandle.cah_CardNode.ln_Type = 0;
   cardHandle.cah_CardNode.ln_Name = "cardInfo";
   cardHandle.cah_CardRemoved  = &cardRemovedInt;
@@ -139,18 +140,18 @@ int main(int argc, char *argv[]) {
   }
 
   /* Set control bits for the card */
-  CardMiscControl(&cardHandle, CARD_DISABLEF_WP|CARD_ENABLEF_DIGAUDIO);
+  CardMiscControl(&cardHandle, CARD_DISABLEF_WP | CARD_ENABLEF_DIGAUDIO);
 
   /* Get Manufacturer/Product data, if available */
-  success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_MANFID, MAX_TUPLE_SIZE);
-  if (success && tupleBuffer[0] == PCCARD_TPL_MANFID) {
+  success = CopyTuple(&cardHandle, tupleBuffer, CISTPL_MANFID, MAX_TUPLE_SIZE);
+  if (success && tupleBuffer[0] == CISTPL_MANFID) {
     sprintf(manufacturer, "%hu", LEWord(tupleBuffer + 2));
     sprintf(product, "%hu", LEWord(tupleBuffer + 4));
   }
 
-  /* Get product name string, if available */
-  success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_VERS1, MAX_TUPLE_SIZE);
-  if (success && tupleBuffer[0] == PCCARD_TPL_VERS1) {
+  /* Get device info strings, if available */
+  success = CopyTuple(&cardHandle, tupleBuffer, CISTPL_VERS_1, MAX_TUPLE_SIZE);
+  if (success && tupleBuffer[0] == CISTPL_VERS_1) {
     char *p = &tupleBuffer[4];
     infoString1 = malloc(strlen(p) + 1);
     strncpy(infoString1, p, strlen(p) + 1);
@@ -165,34 +166,34 @@ int main(int argc, char *argv[]) {
   }
 
   /* Get card type, if available */
-  success = CopyTuple(&cardHandle, tupleBuffer, PCCARD_TPL_FUNCID, MAX_TUPLE_SIZE);
-  if (success && tupleBuffer[0] == PCCARD_TPL_FUNCID) {
+  success = CopyTuple(&cardHandle, tupleBuffer, CISTPL_FUNCID, MAX_TUPLE_SIZE);
+  if (success && tupleBuffer[0] == CISTPL_FUNCID) {
     switch (tupleBuffer[2]) {
-      case PCCARD_FUNC_MULTI:
+      case CISTPL_FUNCID_MULTI:
         type = "Multifunction";
         break;
-      case PCCARD_FUNC_MEM:
+      case CISTPL_FUNCID_MEMORY:
         type = "Memory";
         break;
-      case PCCARD_FUNC_SERIAL:
+      case CISTPL_FUNCID_SERIAL:
         type = "Serial";
         break;
-      case PCCARD_FUNC_PARRL:
+      case CISTPL_FUNCID_PARALLEL:
         type = "Parallel";
         break;
-      case PCCARD_FUNC_FIXED:
+      case CISTPL_FUNCID_FIXED:
         type = "Fixed";
         break;
-      case PCCARD_FUNC_VIDEO:
+      case CISTPL_FUNCID_VIDEO:
         type = "Video";
         break;
-      case PCCARD_FUNC_NETWK:
+      case CISTPL_FUNCID_NETWORK:
         type = "Network";
         break;
-      case PCCARD_FUNC_AIMS:
+      case CISTPL_FUNCID_AIMS:
         type = "AIMS";
         break;
-      case PCCARD_FUNC_SCSI:
+      case CISTPL_FUNCID_SCSI:
         type = "SCSI";
         break;
       default:
