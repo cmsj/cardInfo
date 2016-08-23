@@ -42,13 +42,13 @@ BOOL search_pcmcia(char option, BOOL testExpected, char *testValue) {
   /* Open card.resource */
   CardResource = OpenResource(CARDRESNAME);
   if (!CardResource) {
-    debug("Unable to open card.resource");
+    error("Unable to open card.resource");
     return(FALSE);
   }
 
   /* This is a fairly pointless test, but why not */
   if (CardInterface() != CARD_INTERFACE_AMIGA_0) {
-    debug("cardInfo only works on classic Amiga PCMCIA interfaces");
+    error("cardInfo only works on classic Amiga PCMCIA interfaces");
     return(FALSE);
   }
 
@@ -66,7 +66,7 @@ BOOL search_pcmcia(char option, BOOL testExpected, char *testValue) {
   if ((int)ownCard == 0) {
     /* success */
   } else if ((int)ownCard == -1) {
-    debug("No PCMCIA card is present");
+    error("No PCMCIA card is present");
     return(FALSE);
   } else {
     printf("PCMCIA card already owned by: %s\n", ownCard->cah_CardNode.ln_Name);
@@ -157,6 +157,7 @@ BOOL search_pcmcia(char option, BOOL testExpected, char *testValue) {
         break;
       default:
         error("Invalid option");
+        exit(EXIT_ERROR);
         break;
     }
   } else {

@@ -52,6 +52,7 @@ int search_zorro(char option, BOOL testExpected, char *testValue) {
           break;
         default:
           error("Invalid option");
+          exit(EXIT_ERROR);
           break;
       }
     } else {

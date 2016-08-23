@@ -12,7 +12,6 @@ void debug(char *msg) {
 
 void error(char *msg) {
   printf("ERROR: %s\n", msg);
-  exit(EXIT_ERROR);
 }
 
 BOOL stringTest(char *actual, char *expected) {
